@@ -847,3 +847,30 @@ def test_etag_headers(header, header_attr, header_val, expected) -> None:
 def test_datetime_headers(header, header_attr, header_val, expected) -> None:
     req = make_mocked_request("GET", "/", headers={header: header_val})
     assert getattr(req, header_attr) == expected
+
+
+async def test_multipart_formdata_missing_name(protocol) -> None:
+    """Test that multipart form-data with a missing name in Content-Disposition
+    raises an appropriate error instead of crashing with a null value error."""
+    payload = StreamReader(protocol, 2**16, loop=asyncio.get_event_loop())
+    payload.feed_data(
+        b"-----------------------------326931944431359\r\n"
+        b'Content-Disposition: form-data; name="a"\r\n'
+        b"\r\n"
+        b"b\r\n"
+        b"-----------------------------326931944431359\r\n"
+        b"Content-Disposition: form-data\r\n"
+        b"\r\n"
+        b"missing_name_value\r\n"
+        b"-----------------------------326931944431359--\r\n"
+    )
+    content_type = (
+        "multipart/form-data; boundary=---------------------------326931944431359"
+    )
+    payload.feed_eof()
+    req = make_mocked_request(
+        "POST", "/", headers={"CONTENT-TYPE": content_type}, payload=payload
+    )
+    result = await req.post()
+    # Should return only the parts with valid names, or handle the missing name gracefully
+    assert dict(result) == {"a": "b"}
