@@ -2717,3 +2717,76 @@ async def test_connector_does_not_remove_needed_waiters(loop, key) -> None:
     )
 
     await connector.close()
+
+
+async def test_connector_dns_throttle_race_with_traces(loop) -> None:
+    """Test DNS throttle handles concurrent lookups with traces correctly.
+
+    Two concurrent _resolve_host calls for the same host should both
+    succeed when one has traces. The first call creates the throttle
+    event and resolves; the second finds the existing event and waits.
+    With correct code, the event reference is captured before any await
+    in the waiter path, preventing a race where the resolver could
+    pop the event from _throttle_dns_events before the waiter accesses it.
+
+    When the bug exists (event captured AFTER trace await), this test
+    crashes with KeyError because the resolver pops the event during
+    the waiter's yield in send_dns_cache_hit.
+    """
+    key = ("example.org", 443)
+    expected_addrs = [{"hostname": "example.org", "host": "10.0.0.1",
+                       "port": 443, "family": socket.AF_INET,
+                       "proto": 0, "flags": 0}]
+
+    waiter_in_trace = asyncio.Event()
+    resolver_can_complete = asyncio.Event()
+
+    async def controlled_resolve(host, port, family):
+        await resolver_can_complete.wait()
+        return expected_addrs
+
+    class RaceTracer:
+        """Trace that yields, allowing resolver to complete & pop the event."""
+        async def send_dns_cache_hit(self, *args, **kwargs):
+            waiter_in_trace.set()
+            # Yield to let the resolver run and pop the throttle event
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+
+    with mock.patch("aiohttp.connector.DefaultResolver") as m_resolver:
+        connector = TCPConnector(loop=loop, use_dns_cache=True, ttl_dns_cache=10)
+        m_resolver().resolve = controlled_resolve
+
+        traces = [RaceTracer()]
+
+        async def resolver_coro():
+            return await connector._resolve_host("example.org", 443)
+
+        async def waiter_coro():
+            return await connector._resolve_host("example.org", 443, traces=traces)
+
+        # Start both tasks concurrently
+        t_resolver = loop.create_task(resolver_coro())
+        t_waiter = loop.create_task(waiter_coro())
+
+        # Wait until waiter is inside its trace callback
+        await waiter_in_trace.wait()
+
+        # Let the resolver complete: it sets the event, caches result,
+        # and pops the event from _throttle_dns_events (in finally block)
+        resolver_can_complete.set()
+
+        # Let the resolver run and the waiter resume
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+
+        # Both tasks should complete successfully.
+        # With the bug: waiter raises KeyError when accessing
+        # self._throttle_dns_events[key] after the resolver popped it.
+        result1 = await t_resolver
+        result2 = await t_waiter
+
+        assert result1 == expected_addrs
+        assert result2 == expected_addrs
+
+        await connector.close()

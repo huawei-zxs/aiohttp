@@ -933,11 +933,10 @@ class TCPConnector(BaseConnector):
     ) -> List[ResolveResult]:
         """Resolve host with a dns events throttle."""
         if key in self._throttle_dns_events:
-            # get event early, before any await (#4014)
-            event = self._throttle_dns_events[key]
             if traces:
                 for trace in traces:
                     await trace.send_dns_cache_hit(host)
+            event = self._throttle_dns_events[key]
             await event.wait()
         else:
             # update dict early, before any await (#4014)
