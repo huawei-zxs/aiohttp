@@ -761,7 +761,7 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
                     else:
                         # deal with ordinary data
                         value = await field.read(decode=True)
-                        if field_ct is None or field_ct.startswith("text/"):
+                        if field_ct.startswith("text/"):
                             charset = field.get_charset(default="utf-8")
                             out.add(field.name, value.decode(charset))
                         else:
