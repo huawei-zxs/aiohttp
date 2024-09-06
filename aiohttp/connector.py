@@ -663,8 +663,6 @@ class BaseConnector:
             # this may be result of undetermenistic order of objects
             # finalization due garbage collection.
             pass
-        else:
-            self._release_waiter()
 
     def _release(
         self,
