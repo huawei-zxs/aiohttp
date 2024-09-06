@@ -536,7 +536,7 @@ class BodyPartReader:
         """Returns charset parameter from Content-Type header or default."""
         ctype = self.headers.get(CONTENT_TYPE, "")
         mimetype = parse_mimetype(ctype)
-        return mimetype.parameters.get("charset", self._default_charset or default)
+        return mimetype.parameters.get("charset", self._default_charset)
 
     @reify
     def name(self) -> Optional[str]:
