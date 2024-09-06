@@ -1040,6 +1040,7 @@ class TCPConnector(BaseConnector):
         except KeyError:
             loop = self._loop
             future = loop.create_future()
+            await asyncio.sleep(0)
             self._made_ssl_context[verified] = future
             try:
                 result = await loop.run_in_executor(

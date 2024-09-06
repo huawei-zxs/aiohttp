@@ -1628,6 +1628,27 @@ async def test_ssl_context_once() -> None:
     assert conn1._made_ssl_context is conn2._made_ssl_context is conn3._made_ssl_context
     assert True in conn1._made_ssl_context
 
+async def test_concurrent_ssl_context_creation_race() -> None:
+    """Test SSL context is created only once under concurrent access.
+
+    Multiple connectors accessing _make_or_get_ssl_context concurrently
+    for the same verified value should share the same SSLContext object,
+    not create duplicates due to race conditions in the shared
+    _made_ssl_context class variable cache.
+    """
+    aiohttp.TCPConnector._made_ssl_context.clear()
+
+    conn1 = aiohttp.TCPConnector()
+    conn2 = aiohttp.TCPConnector()
+
+    async def get_ssl_ctx(conn: aiohttp.TCPConnector) -> ssl.SSLContext:
+        return await conn._make_or_get_ssl_context(True)
+
+    ctx1, ctx2 = await asyncio.gather(
+        get_ssl_ctx(conn1), get_ssl_ctx(conn2)
+    )
+
+    assert ctx1 is ctx2, "Concurrent SSL context creation should return the same object"
 
 @pytest.mark.parametrize("exception", [OSError, ssl.SSLError, asyncio.CancelledError])
 async def test_ssl_context_creation_raises(exception: Type[BaseException]) -> None:
