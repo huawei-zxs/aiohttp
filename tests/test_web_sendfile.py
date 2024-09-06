@@ -125,3 +125,28 @@ def test_status_controlled_by_user(loop) -> None:
     loop.run_until_complete(file_sender.prepare(request))
 
     assert file_sender._status == 203
+
+
+def test_file_handle_closed_after_prepare(loop) -> None:
+    """Verify that the file handle is properly closed after prepare()."""
+    request = make_mocked_request(
+        "GET", "http://python.org/logo.png", headers={}
+    )
+
+    mock_fobj = mock.MagicMock()
+
+    filepath = mock.create_autospec(Path, spec_set=True)
+    filepath.name = "logo.png"
+    filepath.stat.return_value.st_size = 1024
+    filepath.stat.return_value.st_mtime_ns = 1603733507222449291
+    filepath.stat.return_value.st_mtime = 1603733507.222
+    filepath.stat.return_value.st_mode = MOCK_MODE
+    filepath.open.return_value = mock_fobj
+
+    file_sender = FileResponse(filepath)
+    file_sender._path = filepath
+    file_sender._sendfile = make_mocked_coro(None)
+
+    loop.run_until_complete(file_sender.prepare(request))
+
+    mock_fobj.close.assert_called_once()
