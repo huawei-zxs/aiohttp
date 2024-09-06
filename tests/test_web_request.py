@@ -663,6 +663,33 @@ async def test_multipart_formdata_file(protocol) -> None:
     result["a_file"].file.close()
 
 
+async def test_multipart_formdata_missing_name(protocol) -> None:
+    """Test that multipart fields without a name parameter are handled gracefully."""
+    payload = StreamReader(protocol, 2**16, loop=asyncio.get_event_loop())
+    payload.feed_data(
+        b"-----------------------------326931944431359\r\n"
+        b"Content-Disposition: form-data\r\n"
+        b"\r\n"
+        b"orphan_data\r\n"
+        b"-----------------------------326931944431359\r\n"
+        b'Content-Disposition: form-data; name="valid"\r\n'
+        b"\r\n"
+        b"valid_data\r\n"
+        b"-----------------------------326931944431359--\r\n"
+    )
+    content_type = (
+        "multipart/form-data; boundary=---------------------------326931944431359"
+    )
+    payload.feed_eof()
+    req = make_mocked_request(
+        "POST", "/", headers={"CONTENT-TYPE": content_type}, payload=payload
+    )
+    result = await req.post()
+    # Fields without a name are skipped; only the valid field is included
+    assert "valid" in result
+    assert result["valid"] == "valid_data"
+
+
 async def test_make_too_big_request_limit_None(protocol) -> None:
     payload = StreamReader(protocol, 2**16, loop=asyncio.get_event_loop())
     large_file = 1024**2 * b"x"

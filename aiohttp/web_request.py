@@ -723,7 +723,6 @@ class BaseRequest(MutableMapping[str, Any], HeadersMixin):
                 field_ct = field.headers.get(hdrs.CONTENT_TYPE)
 
                 if isinstance(field, BodyPartReader):
-                    assert field.name is not None
 
                     # Note that according to RFC 7578, the Content-Type header
                     # is optional, even for files, so we can't assume it's
