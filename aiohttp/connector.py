@@ -692,7 +692,6 @@ class BaseConnector:
             conns = self._conns.get(key)
             if conns is None:
                 conns = self._conns[key] = []
-            conns.append((protocol, self._loop.time()))
 
             if self._cleanup_handle is None:
                 self._cleanup_handle = helpers.weakref_handle(
