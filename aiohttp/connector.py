@@ -658,7 +658,6 @@ class BaseConnector:
 
         try:
             self._acquired.remove(proto)
-            self._drop_acquired_per_host(key, proto)
         except KeyError:  # pragma: no cover
             # this may be result of undetermenistic order of objects
             # finalization due garbage collection.
