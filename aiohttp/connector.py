@@ -568,7 +568,6 @@ class BaseConnector:
             except BaseException:
                 if not self._closed:
                     self._acquired.remove(placeholder)
-                    self._drop_acquired_per_host(key, placeholder)
                     self._release_waiter()
                 raise
             else:
