@@ -1925,6 +1925,59 @@ async def test_connect_with_no_limit_and_limit_per_host(loop, key) -> None:
     await conn.close()
 
 
+async def test_connect_with_limit_per_host_concurrent(loop, key) -> None:
+    """Test that limit_per_host is not violated by async race condition."""
+    proto = mock.Mock()
+    proto.is_connected.return_value = True
+
+    req = ClientRequest("GET", URL("http://localhost:80"), loop=loop)
+
+    conn = aiohttp.BaseConnector(loop=loop, limit=0, limit_per_host=1)
+    conn._conns[key] = [(proto, loop.time())]
+
+    new_proto = mock.Mock()
+    new_proto.is_connected.return_value = True
+    create_fut = loop.create_future()
+    create_fut.set_result(new_proto)
+    conn._create_connection = mock.Mock(return_value=create_fut)
+
+    completed = []
+
+    async def connect_task():
+        connection = await conn.connect(req, [], ClientTimeout())
+        completed.append(connection)
+
+    t1 = loop.create_task(connect_task())
+    t2 = loop.create_task(connect_task())
+
+    try:
+        # Let them race
+        await asyncio.sleep(0.05)
+
+        # With limit_per_host=1, at most ONE should have completed;
+        # the second should be blocked waiting for a connection slot
+        assert len(completed) <= 1, (
+            f"limit_per_host=1 violated: {len(completed)} connections "
+            f"were acquired by concurrent connect() calls"
+        )
+
+        # Also verify the internal state consistency
+        count = len(conn._acquired_per_host.get(key, set()))
+        assert count <= 1, (
+            f"limit_per_host state inconsistency: "
+            f"{count} connections in _acquired_per_host"
+        )
+    finally:
+        # Cleanup
+        for c in completed:
+            c.close()
+        for t in [t1, t2]:
+            if not t.done():
+                t.cancel()
+
+    await conn.close()
+
+
 async def test_connect_with_no_limits(loop, key) -> None:
     proto = mock.Mock()
     proto.is_connected.return_value = True

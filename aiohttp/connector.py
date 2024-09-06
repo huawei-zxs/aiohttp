@@ -591,6 +591,7 @@ class BaseConnector:
                 self._drop_acquired_per_host(key, placeholder)
 
         self._acquired.add(proto)
+        await asyncio.sleep(0)
         self._acquired_per_host[key].add(proto)
         return Connection(self, key, proto, self._loop)
 
