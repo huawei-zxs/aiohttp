@@ -1,3 +1,4 @@
+import pytest
 from pathlib import Path
 from stat import S_IFREG, S_IRUSR, S_IWUSR
 from unittest import mock
@@ -125,3 +126,50 @@ def test_status_controlled_by_user(loop) -> None:
     loop.run_until_complete(file_sender.prepare(request))
 
     assert file_sender._status == 203
+
+
+def test_fobj_closed_after_successful_prepare(loop) -> None:
+    """Verify that the file object is closed after prepare() succeeds."""
+    request = make_mocked_request("GET", "http://python.org/logo.png", headers={})
+
+    mock_fobj = mock.MagicMock()
+
+    filepath = mock.create_autospec(Path, spec_set=True)
+    filepath.name = "logo.png"
+    filepath.stat.return_value.st_size = 1024
+    filepath.stat.return_value.st_mtime_ns = 1603733507222449291
+    filepath.stat.return_value.st_mode = MOCK_MODE
+    filepath.open.return_value = mock_fobj
+
+    file_sender = FileResponse(filepath)
+    file_sender._path = filepath
+    file_sender._sendfile = make_mocked_coro(None)
+
+    loop.run_until_complete(file_sender.prepare(request))
+
+    mock_fobj.close.assert_called_once()
+
+
+def test_fobj_closed_after_sendfile_error(loop) -> None:
+    """Verify that the file object is closed even when _sendfile raises an exception."""
+    request = make_mocked_request("GET", "http://python.org/logo.png", headers={})
+
+    mock_fobj = mock.MagicMock()
+
+    filepath = mock.create_autospec(Path, spec_set=True)
+    filepath.name = "logo.png"
+    filepath.stat.return_value.st_size = 1024
+    filepath.stat.return_value.st_mtime_ns = 1603733507222449291
+    filepath.stat.return_value.st_mode = MOCK_MODE
+    filepath.open.return_value = mock_fobj
+
+    file_sender = FileResponse(filepath)
+    file_sender._path = filepath
+    file_sender._sendfile = make_mocked_coro(
+        raise_exception=RuntimeError("Simulated sendfile failure")
+    )
+
+    with pytest.raises(RuntimeError, match="Simulated sendfile failure"):
+        loop.run_until_complete(file_sender.prepare(request))
+
+    mock_fobj.close.assert_called_once()

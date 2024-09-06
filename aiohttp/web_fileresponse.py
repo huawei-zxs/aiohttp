@@ -347,7 +347,4 @@ class FileResponse(StreamResponse):
         else:
             offset = 0
 
-        try:
-            return await self._sendfile(request, fobj, offset, count)
-        finally:
-            await asyncio.shield(loop.run_in_executor(None, fobj.close))
+        return await self._sendfile(request, fobj, offset, count)
