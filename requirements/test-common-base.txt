@@ -87,7 +87,7 @@ typing-extensions==4.16.0
     #   pytest-asyncio
 wait-for-it==2.3.0
     # via -r requirements/test-common-base.in
-yarl==1.24.2
+yarl==1.24.5
     # via aiohttp
 
 # The following packages are considered to be unsafe in a requirements file:
