@@ -99,7 +99,7 @@ frozenlist==1.8.0
     #   -r requirements/runtime-deps.in
     #   aiohttp
     #   aiosignal
-gunicorn==26.0.0
+gunicorn==26.1.0
     # via -r requirements/base.in
 identify==2.6.19
     # via pre-commit
@@ -153,7 +153,6 @@ nodeenv==1.10.0
 packaging==26.3
     # via
     #   build
-    #   gunicorn
     #   pytest
     #   sphinx
     #   wheel
