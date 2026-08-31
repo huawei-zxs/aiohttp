@@ -14,7 +14,7 @@ attrs==26.1.0
     # via aiohttp
 backports-asyncio-runner==1.2.0
     # via pytest-asyncio
-click==8.4.2
+click==8.5.0
     # via wait-for-it
 coverage==7.15.4
     # via pytest-cov
