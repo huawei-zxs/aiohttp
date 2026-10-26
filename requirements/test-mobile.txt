@@ -101,7 +101,7 @@ pytest-mock==3.17.0
     # via -r requirements/test-common-base.in
 pytest-timeout==2.4.0
     # via -r requirements/test-common-base.in
-python-dateutil==2.9.0.post0
+python-dateutil==3.0.0
     # via freezegun
 setuptools-git==1.2
     # via -r requirements/test-common-base.in
@@ -119,6 +119,8 @@ typing-extensions==4.16.0 ; python_version < "3.13"
     #   exceptiongroup
     #   multidict
     #   pytest-asyncio
+tzdata==2026.5
+    # via python-dateutil
 wait-for-it==2.3.0
     # via -r requirements/test-common-base.in
 yarl==1.25.1
