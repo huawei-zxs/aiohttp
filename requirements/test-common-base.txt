@@ -85,7 +85,7 @@ typing-extensions==4.16.0
     #   exceptiongroup
     #   multidict
     #   pytest-asyncio
-tzdata==2026.5
+tzdata==2026.6
     # via python-dateutil
 wait-for-it==2.3.0
     # via -r requirements/test-common-base.in
