@@ -152,7 +152,7 @@ wait-for-it==2.3.0
     # via -r requirements/test-common-base.in
 yarl==1.25.1
     # via aiohttp
-zlib-ng==1.0.0
+zlib-ng==1.1.0
     # via -r requirements/test-common.in
 
 # The following packages are considered to be unsafe in a requirements file:
