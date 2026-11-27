@@ -60,7 +60,7 @@ multidict==7.1.0
     #   -r requirements/runtime-deps.in
     #   aiohttp
     #   yarl
-packaging==26.3
+packaging==26.4
     # via pytest
 pkgconfig==1.6.0
     # via -r requirements/test-common-base.in
